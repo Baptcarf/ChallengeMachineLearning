@@ -1,0 +1,27 @@
+# automl
+
+## Installation
+
+```bash
+git clone https://github.com/Baptcarf/ChallengeMachineLearning
+cd ChallengeMachineLearning
+```
+
+### Création du conda vierge
+
+```bash
+conda create -n automl python=3.11 -y
+conda activate automl
+```
+
+### Installation
+
+```bash
+pip install .
+```
+
+### Installation développement
+
+```bash
+pip install -e ".[dev]"
+```
