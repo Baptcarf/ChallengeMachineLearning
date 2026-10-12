@@ -1,7 +1,10 @@
 class AutoML:
 
     def __init__(self):
-        self.dataDest = ""
+        self.dataDest  = ""
+        self.train = None
+        self.validation = None
+        self.test = None
 
     def fit(self,dataDest):
         self.dataDest = dataDest
