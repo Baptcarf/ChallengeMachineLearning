@@ -14,7 +14,7 @@ class AutoML:
         return 
 
     
-    def predict(test_path):
+    def predict(self,test_path):
         self.test_path = test_path
 
     def print(self):
