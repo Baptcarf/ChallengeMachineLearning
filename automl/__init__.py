@@ -1,8 +1,9 @@
 from .__main__ import AutoML
+from .data import Dataset, lireDataset, listerDatasets
 
 _default = AutoML()
 
-__all__ = ["AutoML"]
+__all__ = ["AutoML", "Dataset", "lireDataset", "listerDatasets"]
 
 
 def fit(dataDest):
