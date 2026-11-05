@@ -2,7 +2,6 @@ from dataclasses import dataclass,field
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 from scipy import sparse
 from sklearn.model_selection import train_test_split
 
@@ -63,14 +62,14 @@ def lireDataset(path: Path, n_features: int | None = None) -> Dataset:
     solution = path / f"{prefix}.solution"
 
     types = [line.strip() for line in types.read_text().splitlines() if line.strip()]
-    solution = pd.read_csv(solution, header=None, sep=r"\s+", engine="c").to_numpy()
+    solution = np.loadtxt(solution, dtype=float, ndmin=2)
 
     with data.open() as file:
         premiereLigne = file.readline()
 
     dataIsSparse = ":" in premiereLigne
     if not dataIsSparse:
-        data = pd.read_csv(data, header=None, sep=r"\s+", engine="c", memory_map=True)
+        data = np.loadtxt(data, dtype=float, ndmin=2)
         return Dataset(path, data, types, solution, dataIsSparse)
 
     rows: list[int] = []
