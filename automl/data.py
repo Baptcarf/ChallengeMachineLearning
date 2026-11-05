@@ -1,9 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass,field
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from scipy import sparse
+from sklearn.model_selection import train_test_split
 
 DATA_ROOT = Path("/info/corpus/ChallengeMachineLearning")
 
@@ -15,6 +16,11 @@ class Dataset:
     types: list[str]
     solution: np.ndarray
     isSparse: bool
+    X_train :np.ndarray = field(init=False)
+    X_test : np.ndarray = field(init=False)
+    y_train: np.ndarray = field(init=False) 
+    y_test : np.ndarray = field(init=False)
+
 
     def __repr__(self) -> str:
         return (
@@ -26,6 +32,21 @@ class Dataset:
             f"features={self.data.shape[1]},\n"
             f"solution_shape={self.solution.shape})"
         )
+
+    def split(self):
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            self.data,
+            self.solution.ravel(),
+            test_size=0.2,
+            random_state=42
+        )
+        return (self.train(),self.test())
+
+    def train(self)->np.ndarray:
+        return (self.X_train,self.y_train)
+
+    def test(self)->np.ndarray:
+        return (self.X_test,self.y_test)
 
 
 def listerDatasets(root: Path = DATA_ROOT, prefix: str = "data") -> list[Path]:
