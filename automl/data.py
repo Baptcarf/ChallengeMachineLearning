@@ -42,14 +42,14 @@ def lireDataset(path: Path, n_features: int | None = None) -> Dataset:
     solution = path / f"{prefix}.solution"
 
     types = [line.strip() for line in types.read_text().splitlines() if line.strip()]
-    solution = pd.read_csv(solution, header=None, sep=r"\s+", engine="python").to_numpy()
+    solution = pd.read_csv(solution, header=None, sep=r"\s+", engine="c").to_numpy()
 
     with data.open() as file:
         premiereLigne = file.readline()
 
     dataIsSparse = ":" in premiereLigne
     if not dataIsSparse:
-        data = pd.read_csv(data, header=None, sep=r"\s+", engine="python").to_numpy()
+        data = pd.read_csv(data, header=None, sep=r"\s+", engine="c", memory_map=True)
         return Dataset(path, data, types, solution, dataIsSparse)
 
     rows: list[int] = []
