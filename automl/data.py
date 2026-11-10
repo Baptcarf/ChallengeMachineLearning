@@ -11,6 +11,12 @@ Task = Literal["regression", "binary", "multiclass", "multilabel"]
 
 
 @dataclass
+class Split:
+    x: np.ndarray | sparse.csr_matrix
+    y: np.ndarray
+
+
+@dataclass
 class Dataset:
     path: Path
     data: np.ndarray | sparse.csr_matrix
@@ -19,14 +25,52 @@ class Dataset:
     isSparse: bool
     tache: Task | None = field(init=False, default=None)
 
-    X_train: np.ndarray = field(init=False)
-    X_test: np.ndarray = field(init=False)
-    y_train: np.ndarray = field(init=False)
-    y_test: np.ndarray = field(init=False)
+    train: Split | None = field(init=False, default=None)
+    valid: Split | None = field(init=False, default=None)
+    test: Split | None = field(init=False, default=None)
 
     def __post_init__(self):
         if self.solution is not None:
             self.tache = detecterTache(self.solution)
+
+    def _labels_stratif(self, solution: np.ndarray | None = None) -> np.ndarray | None:
+        """Vecteur 1D de labels pour stratify, ou None si pas de stratification"""
+        y = self.solution if solution is None else solution
+        if y is None:
+            return None
+
+        if self.tache == "binary":
+            return y.ravel()
+        if self.tache == "multiclass":
+            return y.argmax(axis=1)
+        if self.tache == "multilabel":
+            # chaque combinaison de labels distincte = une "classe"
+            labels = np.unique(y, axis=0, return_inverse=True)[1]
+            if np.bincount(labels).min() < 2:
+                return None
+            return labels
+        return None  # regression
+
+    def split(self, valid_size: float = 0.1, test_size: float = 0.2, random_state: int = 42):
+        if self.solution is None:
+            raise ValueError("Impossible de séparer un dataset sans solution")
+
+        x_train_valid, x_test, y_train_valid, y_test = train_test_split(
+            self.data, self.solution, test_size=test_size, random_state=random_state, stratify=self._labels_stratif()
+        )
+
+        relative_valid_size = valid_size / (1 - test_size)
+        x_train, x_valid, y_train, y_valid = train_test_split(
+            x_train_valid,
+            y_train_valid,
+            test_size=relative_valid_size,
+            random_state=random_state,
+            stratify=self._labels_stratif(y_train_valid),
+        )
+
+        self.train = Split(x_train, y_train)
+        self.valid = Split(x_valid, y_valid)
+        self.test = Split(x_test, y_test)
 
     def __repr__(self) -> str:
         return (
@@ -38,12 +82,6 @@ class Dataset:
             f"features={self.data.shape[1]},\n"
             f"solution_shape={None if self.solution is None else self.solution.shape})"
         )
-
-    def split(self):
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            self.data, self.solution.ravel(), test_size=0.2, random_state=42
-        )
-        return (self.train(), self.test())
 
 
 def detecterTache(solution: np.ndarray) -> Task:
