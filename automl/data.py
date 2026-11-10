@@ -17,7 +17,7 @@ class Dataset:
     types: list[str]
     solution: np.ndarray | None  # La solution est nul quand on "fit"
     isSparse: bool
-    tache: Task | None = field(init=False)
+    tache: Task | None = field(init=False, default=None)
 
     X_train: np.ndarray = field(init=False)
     X_test: np.ndarray = field(init=False)
@@ -26,11 +26,7 @@ class Dataset:
 
     def __post_init__(self):
         if self.solution is not None:
-            self.task = detecterTache(self.solution)
-
-    @property
-    def n_cols(self) -> int:
-        return self.solution.shape[1]
+            self.tache = detecterTache(self.solution)
 
     def __repr__(self) -> str:
         return (
@@ -40,7 +36,7 @@ class Dataset:
             f"format={'sparse' if self.isSparse else 'dense'},\n"
             f"samples={self.data.shape[0]},\n"
             f"features={self.data.shape[1]},\n"
-            f"solution_shape={self.solution.shape})"
+            f"solution_shape={None if self.solution is None else self.solution.shape})"
         )
 
     def split(self):
@@ -48,12 +44,6 @@ class Dataset:
             self.data, self.solution.ravel(), test_size=0.2, random_state=42
         )
         return (self.train(), self.test())
-
-    def train(self) -> np.ndarray:
-        return (self.X_train, self.y_train)
-
-    def test(self) -> np.ndarray:
-        return (self.X_test, self.y_test)
 
 
 def detecterTache(solution: np.ndarray) -> Task:
@@ -81,10 +71,10 @@ def lireDataset(path: Path, n_features: int | None = None) -> Dataset:
 
     data = path / f"{prefix}.data"
     types = path / f"{prefix}.type"
-    solution = path / f"{prefix}.solution"
+    solutionPath = path / f"{prefix}.solution"
 
     types = [line.strip() for line in types.read_text().splitlines() if line.strip()]
-    solution = np.loadtxt(solution, dtype=float, ndmin=2)
+    solution = np.loadtxt(solutionPath, dtype=float, ndmin=2) if solutionPath.exists() else None
 
     with data.open() as file:
         premiereLigne = file.readline()
