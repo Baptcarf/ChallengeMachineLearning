@@ -1,11 +1,13 @@
-from dataclasses import dataclass,field
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 from scipy import sparse
 from sklearn.model_selection import train_test_split
 
 DATA_ROOT = Path("/info/corpus/ChallengeMachineLearning")
+Task = Literal["regression", "binary", "multiclass", "multilabel"]
 
 
 @dataclass
@@ -13,13 +15,22 @@ class Dataset:
     path: Path
     data: np.ndarray | sparse.csr_matrix
     types: list[str]
-    solution: np.ndarray
+    solution: np.ndarray | None  # La solution est nul quand on "fit"
     isSparse: bool
-    X_train :np.ndarray = field(init=False)
-    X_test : np.ndarray = field(init=False)
-    y_train: np.ndarray = field(init=False) 
-    y_test : np.ndarray = field(init=False)
+    tache: Task | None = field(init=False)
 
+    X_train: np.ndarray = field(init=False)
+    X_test: np.ndarray = field(init=False)
+    y_train: np.ndarray = field(init=False)
+    y_test: np.ndarray = field(init=False)
+
+    def __post_init__(self):
+        if self.solution is not None:
+            self.task = detecterTache(self.solution)
+
+    @property
+    def n_cols(self) -> int:
+        return self.solution.shape[1]
 
     def __repr__(self) -> str:
         return (
@@ -34,18 +45,29 @@ class Dataset:
 
     def split(self):
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            self.data,
-            self.solution.ravel(),
-            test_size=0.2,
-            random_state=42
+            self.data, self.solution.ravel(), test_size=0.2, random_state=42
         )
-        return (self.train(),self.test())
+        return (self.train(), self.test())
 
-    def train(self)->np.ndarray:
-        return (self.X_train,self.y_train)
+    def train(self) -> np.ndarray:
+        return (self.X_train, self.y_train)
 
-    def test(self)->np.ndarray:
-        return (self.X_test,self.y_test)
+    def test(self) -> np.ndarray:
+        return (self.X_test, self.y_test)
+
+
+def detecterTache(solution: np.ndarray) -> Task:
+    y = np.asarray(solution)
+    if y.ndim == 1:
+        y = y.reshape(-1, 1)
+
+    if not np.isin(y, (0.0, 1.0)).all():  # Une valeur qui n'est pas 0 ou 1 => régression
+        return "regression"
+    if y.shape[1] == 1:  # Une seule colonne de 0/1 =W binaire
+        return "binary"
+    if (y.sum(axis=1) == 1).all():  # Plusieurs colonnes, exactement un 1 par ligne => Multiclass
+        return "multiclass"
+    return "multilabel"  # Sinon (plusieurs 1 possibles, ou des lignes à zéro) => multilabel.
 
 
 def listerDatasets(root: Path = DATA_ROOT, prefix: str = "data") -> list[Path]:
