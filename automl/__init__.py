@@ -1,9 +1,19 @@
 from .__main__ import AutoML
+from .config import N_JOBS, N_TRIALS, RANDOM_STATE, TIME_BUDGET
 from .data import Dataset, lireDataset, listerDatasets
 
 _default = AutoML()
 
-__all__ = ["AutoML", "Dataset", "lireDataset", "listerDatasets"]
+__all__ = [
+    "N_JOBS",
+    "N_TRIALS",
+    "RANDOM_STATE",
+    "TIME_BUDGET",
+    "AutoML",
+    "Dataset",
+    "lireDataset",
+    "listerDatasets",
+]
 
 
 def fit(dataDest):
