@@ -26,6 +26,3 @@ def eval():
 
 def predict(test_path):
     return _default.predict(test_path)
-
-def print():
-    _default.print()
