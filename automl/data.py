@@ -1,3 +1,5 @@
+import logging
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -8,6 +10,7 @@ from sklearn.model_selection import train_test_split
 
 from .config import DATA_ROOT, RANDOM_STATE
 
+logger = logging.getLogger(__name__)
 Task = Literal["regression", "binary", "multiclass", "multilabel"]
 
 
@@ -33,6 +36,12 @@ class Dataset:
     def __post_init__(self) -> None:
         if self.solution is not None:
             self._detecterTache()
+            logger.info(f"{self.path.name} : tâche détectée = {self.tache}")
+            if self.isSparse:
+                octets = self.data.data.nbytes + self.data.indices.nbytes + self.data.indptr.nbytes
+            else:
+                octets = self.data.nbytes
+            logger.info(f"{self.path.name} : {octets / 1e6:.1f} Mo en mémoire")
 
     def _detecterTache(self) -> None:
         y = self.solution
@@ -66,6 +75,7 @@ class Dataset:
         # Sans solution, il est impossible de connaître les classes
         # auxquelles appartiennent les observations
         if y is None:
+            logger.debug("Stratification désactivée : pas de solution")
             return None
 
         # Classification binaire : chaque observation possède déjà
@@ -97,16 +107,24 @@ class Dataset:
         # En régression, les valeurs à prédire sont continues
         # il n'existe pas de classes à conserver dans les mêmes proportions.
         elif self.tache == "regression":
+            logger.debug(f"Stratification désactivée : tâche {self.tache} (pas de classes)")
             return None
 
         # bincount n'accepte que des entiers (le binaire est lu en float : 0.0 / 1.0)
         labels = labels.astype(int)
+        effectifs = np.bincount(labels)
 
         # Chaque classe doit avoir au moins deux observations
         # pour permettre une séparation stratifiée
         # Si ce n'est pas le cas, on désactive la stratification
-        if np.bincount(labels).min() < 2:
+        if effectifs.min() < 2:
+            logger.warning(
+                f"Stratification désactivée {self.tache} : la classe {effectifs.argmin()} n'a que {effectifs.min()} exemple(s) sur {len(effectifs)} classes"
+            )
             return None
+        logger.info(
+            f"Stratification activée ({self.tache}) : {len(labels)} observations, {len(effectifs)} classes, la plus rare a {effectifs.min()} exemples, la plus fréquente {effectifs.max()}"
+        )
         return labels
 
     def split(self, valid_size: float = 0.1, test_size: float = 0.2, random_state: int = RANDOM_STATE) -> None:
@@ -157,6 +175,8 @@ class Dataset:
         self.valid = Split(xValid, yValid)
         self.test = Split(xTest, yTest)
 
+        logger.info(f"Split {self.path.name} : train={xTrain.shape[0]}, valid={xValid.shape[0]}, test={xTest.shape[0]}")
+
     def __repr__(self) -> str:
         return (
             f"Dataset(\n"
@@ -177,6 +197,8 @@ def listerDatasets(root: Path = DATA_ROOT, prefix: str = "data") -> list[Path]:
 
 
 def lireDataset(path: Path | str, n_features: int | None = None) -> Dataset:
+    debut = time.perf_counter()
+
     path = Path(path)
     prefix = path.name
 
@@ -193,6 +215,10 @@ def lireDataset(path: Path | str, n_features: int | None = None) -> Dataset:
     dataIsSparse = ":" in premiereLigne
     if not dataIsSparse:
         data = np.loadtxt(data, dtype=float, ndmin=2)
+        logger.info(
+            f"Lecture {path.name} : {'sparse' if dataIsSparse else 'dense'}, shape={data.shape}, "
+            f"solution={None if solution is None else solution.shape} ({time.perf_counter() - debut:.2f}s)"
+        )
         return Dataset(path, data, types, solution, dataIsSparse)
 
     rows: list[int] = []
@@ -215,4 +241,8 @@ def lireDataset(path: Path | str, n_features: int | None = None) -> Dataset:
         n_features = len(types)
 
     data = sparse.csr_matrix((values, (rows, columns)), shape=(nLignes, n_features))
+    logger.info(
+        f"Lecture {path.name} : {'sparse' if dataIsSparse else 'dense'}, shape={data.shape}, "
+        f"solution={None if solution is None else solution.shape} ({time.perf_counter() - debut:.2f}s)"
+    )
     return Dataset(path, data, types, solution, dataIsSparse)

@@ -1,6 +1,9 @@
 from .__main__ import AutoML
 from .config import N_JOBS, N_TRIALS, RANDOM_STATE, TIME_BUDGET
 from .data import Dataset, lireDataset, listerDatasets
+from .log import configurerLogs
+
+configurerLogs()
 
 _default = AutoML()
 
