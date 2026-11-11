@@ -1,3 +1,7 @@
+import logging
+import numpy as np
+import random
+
 from .__main__ import AutoML
 from .config import N_JOBS, N_TRIALS, RANDOM_STATE, TIME_BUDGET
 from .data import Dataset, lireDataset, listerDatasets
@@ -6,6 +10,10 @@ from .log import configurerLogs
 configurerLogs()
 
 _default = AutoML()
+
+random.seed(RANDOM_STATE)
+np.random.seed(RANDOM_STATE)
+logging.getLogger("automl").info("Graine aléatoire initialisée : %s", RANDOM_STATE)
 
 __all__ = [
     "N_JOBS",
