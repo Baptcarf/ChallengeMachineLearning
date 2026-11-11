@@ -3,10 +3,10 @@ from pathlib import Path
 from typing import Literal
 
 import numpy as np
+from config import DATA_ROOT, RANDOM_STATE
 from scipy import sparse
 from sklearn.model_selection import train_test_split
 
-DATA_ROOT = Path("/info/corpus/ChallengeMachineLearning")
 Task = Literal["regression", "binary", "multiclass", "multilabel"]
 
 
@@ -88,7 +88,7 @@ class Dataset:
         # il n'existe pas de classes à conserver dans les mêmes proportions.
         return None
 
-    def split(self, valid_size: float = 0.1, test_size: float = 0.2, random_state: int = 42) -> None:
+    def split(self, valid_size: float = 0.1, test_size: float = 0.2, random_state: int = RANDOM_STATE) -> None:
         """
         Sépare le dataset en trois ensembles :
         - Train : utilisé pour entraîner le modèle
