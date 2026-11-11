@@ -170,7 +170,8 @@ def listerDatasets(root: Path = DATA_ROOT, prefix: str = "data") -> list[Path]:
     )
 
 
-def lireDataset(path: Path, n_features: int | None = None) -> Dataset:
+def lireDataset(path: Path | str, n_features: int | None = None) -> Dataset:
+    path = Path(path)
     prefix = path.name
 
     data = path / f"{prefix}.data"
