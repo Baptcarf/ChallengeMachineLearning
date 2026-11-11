@@ -3,9 +3,10 @@ from pathlib import Path
 from typing import Literal
 
 import numpy as np
-from config import DATA_ROOT, RANDOM_STATE
 from scipy import sparse
 from sklearn.model_selection import train_test_split
+
+from .config import DATA_ROOT, RANDOM_STATE
 
 Task = Literal["regression", "binary", "multiclass", "multilabel"]
 
@@ -29,9 +30,22 @@ class Dataset:
     valid: Split | None = field(init=False, default=None)  # 10% Validation
     test: Split | None = field(init=False, default=None)  # 20% Test
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.solution is not None:
-            self.tache = detecterTache(self.solution)
+            self._detecterTache()
+
+    def _detecterTache(self) -> None:
+        y = self.solution
+        if y.ndim == 1:
+            y = y.reshape(-1, 1)
+
+        if not np.isin(y, (0.0, 1.0)).all():  # Une valeur qui n'est pas 0 ou 1 => régression
+            self.tache = "regression"
+        if y.shape[1] == 1:  # Une seule colonne de 0/1 =W binaire
+            self.tache = "binary"
+        if (y.sum(axis=1) == 1).all():  # Plusieurs colonnes, exactement un 1 par ligne => Multiclass
+            self.tache = "multiclass"
+        self.tache = "multilabel"  # Sinon (plusieurs 1 possibles, ou des lignes à zéro) => multilabel.
 
     def _labels_stratif(self, solution: np.ndarray | None = None) -> np.ndarray | None:
         """
@@ -144,22 +158,9 @@ class Dataset:
             f"format={'sparse' if self.isSparse else 'dense'},\n"
             f"samples={self.data.shape[0]},\n"
             f"features={self.data.shape[1]},\n"
-            f"solution_shape={None if self.solution is None else self.solution.shape})"
+            f"solution_shape={None if self.solution is None else self.solution.shape}),\n"
+            f"tache={self.tache})"
         )
-
-
-def detecterTache(solution: np.ndarray) -> Task:
-    y = np.asarray(solution)
-    if y.ndim == 1:
-        y = y.reshape(-1, 1)
-
-    if not np.isin(y, (0.0, 1.0)).all():  # Une valeur qui n'est pas 0 ou 1 => régression
-        return "regression"
-    if y.shape[1] == 1:  # Une seule colonne de 0/1 =W binaire
-        return "binary"
-    if (y.sum(axis=1) == 1).all():  # Plusieurs colonnes, exactement un 1 par ligne => Multiclass
-        return "multiclass"
-    return "multilabel"  # Sinon (plusieurs 1 possibles, ou des lignes à zéro) => multilabel.
 
 
 def listerDatasets(root: Path = DATA_ROOT, prefix: str = "data") -> list[Path]:
