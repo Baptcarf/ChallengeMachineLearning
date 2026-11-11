@@ -41,11 +41,12 @@ class Dataset:
 
         if not np.isin(y, (0.0, 1.0)).all():  # Une valeur qui n'est pas 0 ou 1 => régression
             self.tache = "regression"
-        if y.shape[1] == 1:  # Une seule colonne de 0/1 =W binaire
+        elif y.shape[1] == 1:  # Une seule colonne de 0/1 =W binaire
             self.tache = "binary"
-        if (y.sum(axis=1) == 1).all():  # Plusieurs colonnes, exactement un 1 par ligne => Multiclass
+        elif (y.sum(axis=1) == 1).all():  # Plusieurs colonnes, exactement un 1 par ligne => Multiclass
             self.tache = "multiclass"
-        self.tache = "multilabel"  # Sinon (plusieurs 1 possibles, ou des lignes à zéro) => multilabel.
+        else:
+            self.tache = "multilabel"  # Sinon (plusieurs 1 possibles, ou des lignes à zéro) => multilabel.
 
     def _labels_stratif(self, solution: np.ndarray | None = None) -> np.ndarray | None:
         """
