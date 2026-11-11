@@ -71,17 +71,19 @@ class Dataset:
         # Classification binaire : chaque observation possède déjà
         # une seule étiquette (0 ou 1). On transforme le tableau en 1D
         if self.tache == "binary":
-            return y.ravel()
+            labels = y.ravel()
 
         # Classification multiclasses : chaque observation possède
         # une seule classe, représentée par un vecteur contenant un seul 1.
         # On récupère la position de ce 1 pour obtenir son numéro de classe.
-        if self.tache == "multiclass":
-            return y.argmax(axis=1)
+
+        elif self.tache == "multiclass":
+            labels = y.argmax(axis=1)
 
         # Classification multilabel : une observation peut posséder
         # plusieurs étiquettes simultanément
-        if self.tache == "multilabel":
+
+        elif self.tache == "multilabel":
             # Chaque combinaison différente d'étiquettes est considérée
             # comme une classe distincte afin de pouvoir effectuer
             # une stratification classique
@@ -92,16 +94,20 @@ class Dataset:
             # Les combinaisons identiques reçoivent le même numéro
             labels = np.unique(y, axis=0, return_inverse=True)[1]
 
-            # Chaque classe doit avoir au moins deux observations
-            # pour permettre une séparation stratifiée
-            # Si ce n'est pas le cas, on désactive la stratification
-            if np.bincount(labels).min() < 2:
-                return None
-            return labels
-
         # En régression, les valeurs à prédire sont continues
         # il n'existe pas de classes à conserver dans les mêmes proportions.
-        return None
+        elif self.tache == "regression":
+            return None
+
+        # bincount n'accepte que des entiers (le binaire est lu en float : 0.0 / 1.0)
+        labels = labels.astype(int)
+
+        # Chaque classe doit avoir au moins deux observations
+        # pour permettre une séparation stratifiée
+        # Si ce n'est pas le cas, on désactive la stratification
+        if np.bincount(labels).min() < 2:
+            return None
+        return labels
 
     def split(self, valid_size: float = 0.1, test_size: float = 0.2, random_state: int = RANDOM_STATE) -> None:
         """
